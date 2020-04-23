@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "326766213637",
+    "firebase_url": "https://home-5aadf.firebaseio.com",
+    "project_id": "home-5aadf",
+    "storage_bucket": "home-5aadf.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326766213637:android:dc037a515ccd028b743a6c",
+        "android_client_info": {
+          "package_name": "com.example.home_phone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "326766213637-nr3lmm12jteq8u7bpaac1h3gb1lr90hq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGUVtehV1RcOO4I0DnxsMFnMtDTrV6x5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "326766213637-nr3lmm12jteq8u7bpaac1h3gb1lr90hq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326766213637:android:492ba199454bf06b743a6c",
+        "android_client_info": {
+          "package_name": "com.hay.remote_youtube_controller"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "326766213637-nr3lmm12jteq8u7bpaac1h3gb1lr90hq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGUVtehV1RcOO4I0DnxsMFnMtDTrV6x5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "326766213637-nr3lmm12jteq8u7bpaac1h3gb1lr90hq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

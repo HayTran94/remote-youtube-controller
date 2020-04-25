@@ -7,9 +7,9 @@ import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayerView;
-import com.hay.remote_youtube_controller.domain.Config;
 import com.hay.remote_youtube_controller.domain.EventListener;
-import com.hay.remote_youtube_controller.domain.Statistic;
+import com.hay.remote_youtube_controller.domain.Statistics;
+import com.hay.remote_youtube_controller.domain.Video;
 import com.hay.remote_youtube_controller.repository.FirebaseRepo;
 import com.hay.remote_youtube_controller.utils.Constant;
 import com.hay.remote_youtube_controller.R;
@@ -23,7 +23,7 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
     private MyPlayerStateChangeListener playerStateChangeListener;
     private MyPlaybackEventListener playbackEventListener;
     private FirebaseRepo firebaseRepo = FirebaseRepo.getInstance();
-    private Statistic statistic = new Statistic();
+    private Statistics statistics = new Statistics();
     private Timer timer = new Timer();
 
     @Override
@@ -35,20 +35,34 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
         playerStateChangeListener = new MyPlayerStateChangeListener();
         playbackEventListener = new MyPlaybackEventListener();
         youtubePlayerView.initialize(Constant.API_KEY, this);
-
         firebaseRepo.setEventListener(new EventListener() {
             @Override
-            public void newVideoAdded(Config config) {
+            public void onPlayStatusChanged(boolean wantPlay) {
                 if (youTubePlayer == null) {
                     return;
                 }
-                if (!config.isWantPlay()) {
+                if (!wantPlay) {
                     youTubePlayer.pause();
                 } else {
-                    youTubePlayer.cueVideo(config.getVideoLink(), config.getVideoTime());
+                    youTubePlayer.play();
                 }
             }
+
+            @Override
+            public void onUpdatePlayedVideo() {
+                firebaseRepo.getUpcomingVideo();
+            }
+
+            @Override
+            public void onGetUpcomingVideo(Video video) {
+                if (youTubePlayer == null) {
+                    return;
+                }
+                youTubePlayer.cueVideo(video.getLink());
+            }
         });
+
+
 
     }
 
@@ -58,9 +72,11 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                statistic.setVideoTime(youTubePlayer != null ? youTubePlayer.getCurrentTimeMillis() : 0);
-                statistic.setTimestamp(System.currentTimeMillis());
-                firebaseRepo.sendStatistic(statistic);
+                statistics.setPlaying(youTubePlayer != null ? youTubePlayer.isPlaying() : false);
+                statistics.setPlayedTime(youTubePlayer != null ? youTubePlayer.getCurrentTimeMillis() : 0);
+                statistics.setDuration(youTubePlayer != null ? youTubePlayer.getDurationMillis() : 0);
+                statistics.setUpdateTime(System.currentTimeMillis());
+                firebaseRepo.sendStatistic(statistics);
             }
         }, 0, 5*1000);
     }
@@ -84,19 +100,17 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
     public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer player, boolean wasRestored) {
         Log.d(TAG, "onInitializationSuccess, wasRestored: " + wasRestored);
         this.youTubePlayer = player;
-        if (!wasRestored) {
-            youTubePlayer.setFullscreen(true);
-            youTubePlayer.setShowFullscreenButton(false);
-        }
+        youTubePlayer.setFullscreen(true);
+        youTubePlayer.setShowFullscreenButton(false);
         youTubePlayer.setPlaybackEventListener(playbackEventListener);
         youTubePlayer.setPlayerStateChangeListener(playerStateChangeListener);
-        Config config = firebaseRepo.getLatestConfig();
-        if (config != null) {
-            if (!config.isWantPlay()) {
-                youTubePlayer.pause();
-            } else {
-                youTubePlayer.cueVideo(config.getVideoLink(), config.getVideoTime());
-            }
+
+        boolean wantPlay = firebaseRepo.isWantPlay();
+        Video video = firebaseRepo.getCurrentVideo();
+        if (!wantPlay) {
+            youTubePlayer.pause();
+        } else if (video != null) {
+            youTubePlayer.cueVideo(video.getLink());
         }
     }
 
@@ -114,30 +128,25 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
         public void onPlaying() {
             // Called when playback starts, either due to user action or call to play().
             Log.d(TAG, "onPlaying: ");
-            statistic.setPlaying(true);
-            statistic.setStopped(false);
         }
 
         @Override
         public void onPaused() {
             // Called when playback is paused, either due to user action or call to pause().
             Log.d(TAG, "onPaused: ");
-            statistic.setPlaying(false);
         }
 
         @Override
         public void onStopped() {
             // Called when playback stops for a reason other than being paused.
             Log.d(TAG, "onStopped: ");
-            statistic.setPlaying(false);
-            statistic.setStopped(true);
         }
 
         @Override
         public void onBuffering(boolean b) {
             // Called when buffering starts or ends.
             Log.d(TAG, "onBuffering: " + b);
-            statistic.setBuffering(b);
+            statistics.setBuffering(b);
         }
 
         @Override
@@ -160,7 +169,6 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
             // Called when the player is loading a video
             // At this point, it's not ready to accept commands affecting playback such as play() or pause()
             Log.d(TAG, "onLoading: ");
-            statistic.setLoading(true);
         }
 
         @Override
@@ -171,27 +179,28 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
             if (youTubePlayer != null) {
                 youTubePlayer.play();
             }
-            statistic.setLoading(false);
+            statistics.setVideoLink(s);
         }
 
         @Override
         public void onAdStarted() {
             // Called when playback of an advertisement starts.
             Log.d(TAG, "onAdStarted: ");
-            statistic.setAdStarted(true);
+            statistics.setPlayingAds(true);
         }
 
         @Override
         public void onVideoStarted() {
             // Called when playback of the video starts.
             Log.d(TAG, "onVideoStarted: ");
-            statistic.setAdStarted(false);
+            statistics.setPlayingAds(false);
         }
 
         @Override
         public void onVideoEnded() {
             // Called when the video reaches its end.
             Log.d(TAG, "onVideoEnded: ");
+            firebaseRepo.updatePlayedVideo(FirebaseRepo.getInstance().getCurrentVideo());
         }
 
         @Override

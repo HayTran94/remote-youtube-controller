@@ -49,11 +49,6 @@ public class MainActivity extends YouTubeBaseActivity implements YouTubePlayer.O
             }
 
             @Override
-            public void onUpdatePlayedVideo() {
-                firebaseRepo.getUpcomingVideo();
-            }
-
-            @Override
             public void onGetUpcomingVideo(Video video) {
                 if (youTubePlayer == null) {
                     return;

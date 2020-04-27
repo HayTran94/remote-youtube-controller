@@ -9,8 +9,8 @@ public class Video {
     public int duration;
     public int categoryId;
     public int sessionId;
-    public String isPlayed_addTime;
-    public boolean isPlayed;
+    public String isPlayed_playTimes_addTime;
+    public int isPlayed;
     public int playTime;
     public long addTime;
     public long updateTime;
@@ -58,20 +58,16 @@ public class Video {
         this.sessionId = sessionId;
     }
 
-    public String getIsPlayed_addTime() {
-        return isPlayed_addTime;
+    public String getIsPlayed_playTimes_addTime() {
+        return isPlayed_playTimes_addTime;
     }
 
-    public void setIsPlayed_addTime(String isPlayed_addTime) {
-        this.isPlayed_addTime = isPlayed_addTime;
+    public void setIsPlayed_playTimes_addTime(String isPlayed_playTimes_addTime) {
+        this.isPlayed_playTimes_addTime = isPlayed_playTimes_addTime;
     }
 
-    public boolean isPlayed() {
-        return isPlayed;
-    }
-
-    public void setPlayed(boolean played) {
-        isPlayed = played;
+    public Video(int isPlayed) {
+        this.isPlayed = isPlayed;
     }
 
     public int getPlayTime() {

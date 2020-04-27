@@ -4,8 +4,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.solver.widgets.Snapshot;
-
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -24,8 +22,9 @@ public class FirebaseRepo {
     private static FirebaseRepo instance;
     private EventListener eventListener;
     private DatabaseReference db;
-    private boolean wantPlay;
     private Video currentVideo;
+    private boolean wantPlay;
+    private int maxReply;
 
     private FirebaseRepo() {
         db = FirebaseDatabase.getInstance().getReference("android_box");
@@ -49,6 +48,14 @@ public class FirebaseRepo {
 
     public void setWantPlay(boolean wantPlay) {
         this.wantPlay = wantPlay;
+    }
+
+    public int getMaxReply() {
+        return maxReply;
+    }
+
+    public void setMaxReply(int maxReply) {
+        this.maxReply = maxReply;
     }
 
     public Video getCurrentVideo() {
@@ -76,12 +83,25 @@ public class FirebaseRepo {
 
             }
         });
+        db.child("config/maxReply").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Log.d(TAG, "onDataChange: setUp");
+                int maxReply = dataSnapshot.getValue(int.class);
+                setMaxReply(maxReply);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
         getUpcomingVideo();
     }
 
     public void getUpcomingVideo() {
         db.child("config/videos")
-                .orderByChild("isPlayed_addTime")
+                .orderByChild("isPlayed_playTimes_addTime")
                 .limitToFirst(1)
                 .addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -104,18 +124,24 @@ public class FirebaseRepo {
     }
 
     public void updatePlayedVideo(final Video video) {
+        String[] keys = video.getIsPlayed_playTimes_addTime().split("_");
+        int prevPlayTimes = Integer.valueOf(keys[1]);
+        int curPlayTimes = prevPlayTimes + 1;
+        int isPlayed = 0;
+        if (curPlayTimes >= getMaxReply()) {
+            isPlayed = 1;
+        }
         Map<String, Object> map = new HashMap<>();
-        map.put("isPlayed", true);
-        map.put("isPlayed_addTime", "1_" + video.getAddTime());
+        map.put("isPlayed", isPlayed);
+        map.put("playTimes", curPlayTimes);
+        map.put("isPlayed_playTimes_addTime", isPlayed + "_" + curPlayTimes + "_" + video.getAddTime());
         db.child("config/videos")
                 .child(video.getId())
                 .updateChildren(map, new DatabaseReference.CompletionListener() {
                     @Override
                     public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
                         Log.d(TAG, "onComplete: updatePlayedVideo: " + databaseError);
-                        if (eventListener != null) {
-                            eventListener.onUpdatePlayedVideo();
-                        }
+                        getUpcomingVideo();
                     }
                 });
     }
